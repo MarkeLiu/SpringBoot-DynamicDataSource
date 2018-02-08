@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 指定工作空间，要与接口名相同，源代码没有去看，猜测应该是通过"这里的namespace.下边方法的id"来定位方法的 -->
+<mapper namespace="com.huawei.dynamicdb.mapper.ZwbmMapper">
+	<delete id="deleteAll">
+		DELETE FROM ywxt;
+	</delete>
+	<!-- 更新YWXT表数据 -->
+	<insert id="renewYWXT" parameterType="java.util.List">
+
+		INSERT INTO
+		ywxt(ywxtbm,ywxtmc,zwbmbm,zwbmjc,zwbmmc,ywxtjsxz,ywxtbswz,ywxtjrwllx)
+		values
+		<foreach collection="list" item="a" index="index" separator=",">
+			(#{a.ywxtbm},#{a.ywxtmc},#{a.zwbmbm},#{a.zwbmjc},#{a.zwbmmc},#{a.ywxtjsxz},#{a.ywxtbswz},#{a.ywxtjrwllx})
+		</foreach>
+		;
+	</insert>
+	
+	<select id="testData" resultType="map">
+	select * from zwbm;
+	</select>
+</mapper>

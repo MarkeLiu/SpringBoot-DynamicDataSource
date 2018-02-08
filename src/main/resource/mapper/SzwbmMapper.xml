@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 指定工作空间，要与接口名相同，源代码没有去看，猜测应该是通过"这里的namespace.下边方法的id"来定位方法的 -->
+<mapper namespace="com.springboot.dao.cluster.SzwbmMapper">
+
+	<select id="queryData" parameterType="map" resultType="map">
+
+		<!-- SELECT t.org_code zwbmbm, CASE WHEN t.org_code = '510100-C-001' THEN 
+			'市人民政府应急管理办公室' ELSE t.`org_fullname` END AS zwbmmc, CASE WHEN t.org_code 
+			= '510100-C-001' THEN '市人民政府应急管理办公室' ELSE t.`org_shortname` END AS zwbmjc, 
+			IFNULL(c.xxzysl,0) xxzysl, IFNULL((SELECT COUNT(*) FROM `dir_organize` t1 
+			WHERE t1.org_code LIKE CONCAT(t.org_code,'-','%') AND org_fcode!='root') 
+			,0)xsjgsl, IFNULL(c.ywsxsl,0) ywsxsl, IFNULL(c.sjxsl,0) sjxsl, IFNULL(c.xxzyxqsl,0) 
+			xxzyxqsl, IFNULL(c.xxzybxqsl,0) xxzybxqsl, case when t.org_category_code='Z' 
+			then '1' else '0' end type FROM (SELECT uuid,org_category,org_status,org_fullname,org_shortname,SUBSTRING(org_code,1,12) 
+			org_code,org_category_code,org_fcode from `dir_organize`)t LEFT JOIN (SELECT 
+			SUM(b.xxzysl) xxzysl,SUM(b.ywsxsl) ywsxsl,SUM(b.sjxsl) sjxsl, SUM(b.xxzyxqsl) 
+			xxzyxqsl,SUM(b.xxzybxqsl) xxzybxqsl,deprcode FROM ( (SELECT SUM(total) xxzysl,0 
+			ywsxsl,0 sjxsl, 0 xxzyxqsl,0 xxzybxqsl,deprcode FROM (SELECT COUNT(*) total, 
+			CASE WHEN org_fcode='root' AND LENGTH(org_code=16) THEN SUBSTRING(org.org_code,1,16) 
+			ELSE SUBSTRING(org.org_code,1,12) END deprcode FROM `dataset` t1 LEFT JOIN 
+			`dir_organize` org ON org.`uuid` = t1.`BELONG_DEP` GROUP BY t1.`BELONG_DEP`) 
+			a GROUP BY deprcode) UNION ALL ( SELECT 0 xxzysl,SUM(total) ywsxsl,0 sjxsl, 
+			0 xxzyxqsl,0 xxzybxqsl,deprcode FROM (SELECT COUNT(*) total, CASE WHEN org_fcode='root' 
+			AND LENGTH(org_code=16) THEN SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) 
+			END deprcode FROM `activity_rel_deps` t1 LEFT JOIN `dir_organize` org ON 
+			org.`uuid` = t1.`DEP_ID` GROUP BY t1.`DEP_ID`) a GROUP BY deprcode) UNION 
+			ALL (SELECT 0 xxzysl,0 ywsxsl,SUM(total) sjxsl, 0 xxzyxqsl,0 xxzybxqsl,deprcode 
+			FROM (SELECT COUNT(t1.id) total, CASE WHEN org_fcode='root' AND LENGTH(org_code=16) 
+			THEN SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) END deprcode 
+			FROM `dataset_item_map` t1 LEFT JOIN `dataset` t2 ON t2.`ID` = t1.`dataset_id` 
+			LEFT JOIN `dir_organize` org ON org.`uuid` = t2.`BELONG_DEP` GROUP BY t2.`BELONG_DEP`) 
+			a GROUP BY deprcode) UNION ALL (SELECT 0 xxzysl,0 ywsxsl,0 sjxsl, SUM(total) 
+			xxzyxqsl,0 xxzybxqsl,deprcode FROM (SELECT COUNT(*) total, CASE WHEN org_fcode='root' 
+			AND LENGTH(org_code=16) THEN SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) 
+			END deprcode FROM `business_requirement` t1 LEFT JOIN `dir_organize` org 
+			ON org.`uuid` = t1.`REQURE_DEP_ID` GROUP BY t1.`REQURE_DEP_ID`) a GROUP BY 
+			deprcode) UNION ALL (SELECT 0 xxzysl,0 ywsxsl,0 sjxsl, 0 xxzyxqsl,SUM(total) 
+			xxzybxqsl,deprcode FROM (SELECT COUNT(*) total, CASE WHEN org_fcode='root' 
+			AND LENGTH(org_code=16) THEN SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) 
+			END deprcode FROM `business_requirement` t1 LEFT JOIN `dir_organize` org 
+			ON org.`uuid` = t1.`SOURCE_DEP_ID` GROUP BY t1.`SOURCE_DEP_ID`) a GROUP BY 
+			deprcode) ) b GROUP BY deprcode ) c ON c.deprcode = t.org_code WHERE t.`org_fcode`='root' 
+			AND t.`org_status` = 1 -->
+           		SELECT A.org_code zwbmbm,A.org_shortname zwbmjc,A.org_fullname zwbmmc,
+		(SELECT COUNT(*) from dir_organize WHERE org_fcode LIKE
+		CONCAT("%",A.org_code,"%")) as xsjgsl,
+		IFNULL(C.ywsxsl,0)
+		ywsxsl,IFNULL(B.xxzysl,0) xxzysl,IFNULL(B.sjxsl,0)
+		sjxsl,0 xxzyxqsl,0 xxzybxqsl,
+		case when A.org_category_code='Z' then '1' else '0' end type
+		from (
+		SELECT org_code,org_fullname,org_shortname,org_category_code FROM
+		dir_organize WHERE org_fcode='root'
+		)as A
+		LEFT JOIN (
+		SELECT
+		B.org_code,COUNT(B.ID) xxzysl,SUM(B.sjxsl) sjxsl FROM (
+		SELECT
+		SUBSTRING_INDEX(SUBSTRING_INDEX(FIND_ORG_PARENT(o.org_code),",",-1),",",1)
+		org_code,
+		ds.ID,dm.sjxsl
+		FROM
+		dataset AS ds
+		LEFT JOIN dir_organize AS o ON
+		ds.BELONG_DEP = o.uuid
+		LEFT JOIN (SELECT DATASET_ID,COUNT(*) sjxsl from
+		dataset_item_map GROUP BY
+		DATASET_ID) as dm ON ds.ID=dm.DATASET_ID
+		)as B
+		GROUP BY B.org_code
+		) as B ON A.org_code=B.org_code
+		LEFT JOIN (
+				SELECT
+		c.org_code,COUNT(c.ACTIVITY_CODE) as ywsxsl from (SELECT
+		ard.ACTIVITY_CODE,SUBSTRING_INDEX(SUBSTRING_INDEX(FIND_ORG_PARENT(o.org_code),",",-1),",",1)
+		org_code
+		FROM business_activity as ard LEFT JOIN
+		dir_organize as o ON
+		ard.BELONG_DEP=o.uuid) as C GROUP BY c.org_code
+		) as C
+		ON A.org_code=C.org_code
+		LEFT JOIN (
+		SELECT b.org_code,SUM(b.xqcs)
+		xxzyxqsl from (SELECT
+		SUBSTRING_INDEX(
+		SUBSTRING_INDEX(
+		FIND_ORG_PARENT
+		(a.org_code),
+		"," ,- 1
+		),
+		",",
+		1
+		) AS org_code,
+		COUNT(A.SOURCE_DEP_ID) xqcs
+		FROM
+		(
+		SELECT
+		SUBSTRING_INDEX(
+		SUBSTRING_INDEX(
+		FIND_DIR_PARENT
+		(dld.dir_code),
+		"," ,- 2
+		),
+		",",
+		1
+		) AS zt,
+		dld.set_code,
+		br.ID,
+		org.org_code,
+		org.org_shortname,
+		org.org_fullname,
+		rdm.SET_NAME,
+		SUBSTRING_INDEX(br.SOURCE_DEP_ID, "," ,- 1) SOURCE_DEP_ID
+		FROM
+		dir_lists_datasetmap AS dld
+		RIGHT JOIN requirement_dataset_map rdm ON
+		dld.set_code = rdm.SET_ID
+		LEFT JOIN business_requirement AS br ON
+		rdm.REQUIREMENT_ID = br.ID
+		LEFT JOIN dir_organize AS org ON
+		SUBSTRING_INDEX(br.SOURCE_DEP_ID, "," ,-
+		1) = org.uuid
+		WHERE
+		rdm.SET_NAME IS NOT NULL
+		AND dld.set_code IS NOT NULL
+		AND
+		br.SOURCE_DEP_ID IS NOT NULL
+		GROUP BY
+		dld.set_code,
+		br.SOURCE_DEP_ID
+		) AS
+		A
+		GROUP BY
+		A.SOURCE_DEP_ID) as B GROUP BY b.org_code
+		) as D ON
+		A.org_code=D.org_code
+		LEFT JOIN (
+		SELECT d.org_code,SUM(d.bxqcs) as
+		bxxzyxqsl from (
+		SELECT
+		SUBSTRING_INDEX(
+		SUBSTRING_INDEX(
+		FIND_ORG_PARENT
+		(a.org_code),
+		"," ,- 1
+		),
+		",",
+		1
+		) AS org_code,
+		COUNT(A.REQURE_DEP_ID) bxqcs
+		FROM
+		(
+		SELECT
+		SUBSTRING_INDEX(
+		SUBSTRING_INDEX(
+		FIND_DIR_PARENT
+		(dld.dir_code),
+		"," ,- 2
+		),
+		",",
+		1
+		) AS zt,
+		dld.set_code,
+		br.ID,
+		org.org_code,
+		org.org_shortname,
+		org.org_fullname,
+		rdm.SET_NAME,
+		SUBSTRING_INDEX(br.REQURE_DEP_ID, "," ,- 1) REQURE_DEP_ID
+		FROM
+		dir_lists_datasetmap AS dld
+		RIGHT JOIN requirement_dataset_map rdm ON
+		dld.set_code = rdm.SET_ID
+		LEFT JOIN business_requirement AS br ON
+		rdm.REQUIREMENT_ID = br.ID
+		LEFT JOIN dir_organize AS org ON
+		SUBSTRING_INDEX(br.REQURE_DEP_ID, "," ,-
+		1) = org.uuid
+		WHERE
+		rdm.SET_NAME IS NOT NULL
+		AND dld.set_code IS NOT NULL
+		AND
+		br.REQURE_DEP_ID IS NOT NULL
+		GROUP BY
+		dld.set_code,
+		br.REQURE_DEP_ID
+		) AS
+		A
+		GROUP BY
+		A.REQURE_DEP_ID
+		)as D GROUP BY D.org_code
+		) as E ON
+		A.org_code=E.org_code;
+		;
+	</select>
+	<select id="queryCount" parameterType="map" resultType="int">
+		SELECT
+		count(*)
+		FROM `dir_organize` t
+		LEFT JOIN
+		(SELECT SUM(b.xxzysl)
+		xxzysl,SUM(b.ywsxsl) ywsxsl,SUM(b.sjxsl) sjxsl,
+		SUM(b.xxzyxqsl)
+		xxzyxqsl,SUM(b.xxzybxqsl) xxzybxqsl,deprcode
+		FROM
+		(
+		(SELECT SUM(total)
+		xxzysl,0 ywsxsl,0 sjxsl, 0 xxzyxqsl,0 xxzybxqsl,deprcode
+		FROM
+		(SELECT
+		COUNT(*) total,
+		CASE WHEN org_fcode='root' AND LENGTH(org_code=16) THEN
+		SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) END
+		deprcode
+		FROM `dataset` t1
+		LEFT JOIN `dir_organize` org ON org.`uuid` =
+		t1.`BELONG_DEP`
+		GROUP BY
+		t1.`BELONG_DEP`) a GROUP BY deprcode)
+
+		UNION ALL
+		( SELECT 0
+		xxzysl,SUM(total) ywsxsl,0 sjxsl, 0 xxzyxqsl,0
+		xxzybxqsl,deprcode FROM
+		(SELECT COUNT(*) total,
+		CASE WHEN
+		org_fcode='root' AND LENGTH(org_code=16) THEN
+		SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) END
+		deprcode
+		FROM
+		`activity_rel_deps` t1
+		LEFT JOIN `dir_organize` org ON
+		org.`uuid` =
+		t1.`DEP_ID`
+		GROUP BY t1.`DEP_ID`) a GROUP BY deprcode)
+
+		UNION ALL
+		(SELECT
+		0 xxzysl,0 ywsxsl,SUM(total) sjxsl, 0 xxzyxqsl,0
+		xxzybxqsl,deprcode
+		FROM
+		(SELECT COUNT(t1.id) total,
+		CASE WHEN
+		org_fcode='root' AND LENGTH(org_code=16) THEN
+		SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) END
+		deprcode
+		FROM `dataset_item_map` t1
+		LEFT JOIN `dataset` t2 ON t2.`ID` =
+		t1.`dataset_id`
+		LEFT JOIN `dir_organize` org ON org.`uuid` =
+		t2.`BELONG_DEP`
+		GROUP BY t2.`BELONG_DEP`) a GROUP BY deprcode)
+
+		UNION ALL
+		(SELECT 0 xxzysl,0 ywsxsl,0 sjxsl, SUM(total) xxzyxqsl,0
+		xxzybxqsl,deprcode
+		FROM
+		(SELECT COUNT(*) total,
+		CASE WHEN
+		org_fcode='root' AND LENGTH(org_code=16) THEN
+		SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) END
+		deprcode
+		FROM `business_requirement` t1
+		LEFT JOIN `dir_organize` org ON
+		org.`uuid` = t1.`REQURE_DEP_ID`
+		GROUP
+		BY t1.`REQURE_DEP_ID`) a GROUP BY
+		deprcode)
+
+		UNION ALL
+		(SELECT 0 xxzysl,0
+		ywsxsl,0 sjxsl, 0
+		xxzyxqsl,SUM(total) xxzybxqsl,deprcode
+		FROM
+		(SELECT
+		COUNT(*) total,
+		CASE
+		WHEN org_fcode='root' AND LENGTH(org_code=16) THEN
+		SUBSTRING(org.org_code,1,16) ELSE SUBSTRING(org.org_code,1,12) END
+		deprcode
+		FROM
+		`business_requirement` t1
+		LEFT JOIN `dir_organize` org ON
+		org.`uuid` =
+		t1.`SOURCE_DEP_ID`
+		GROUP BY t1.`SOURCE_DEP_ID`) a GROUP BY
+		deprcode)
+		) b
+		GROUP BY deprcode
+		) c ON c.deprcode = t.org_code
+		WHERE
+		t.`org_fcode`='root' AND t.`org_status` = 1;
+	</select>
+</mapper>
